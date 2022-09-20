@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-
 from reviews.models import Categories, Genres, Title
 
 from .permissions import IsAdminOrReadOnly

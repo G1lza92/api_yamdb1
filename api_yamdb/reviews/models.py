@@ -1,12 +1,9 @@
-from django.contrib.auth import get_user_model
 from django.db import models
-
-# User = get_user_model()
 
 
 class Categories(models.Model):
-    name = models.CharField(verbose_name='Категория', max_length=50)
-    slug = models.SlugField(max_length=30, unique=True)
+    name = models.CharField(verbose_name='Категория', max_length=256)
+    slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
         ordering = ['name']
@@ -18,8 +15,8 @@ class Categories(models.Model):
 
 
 class Genres(models.Model):
-    name = models.CharField(verbose_name='Жанр', max_length=50)
-    slug = models.SlugField(max_length=30, unique=True)
+    name = models.CharField(verbose_name='Жанр', max_length=256)
+    slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
         ordering = ['name']
@@ -31,10 +28,16 @@ class Genres(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(verbose_name='Название произведения', max_length=200)
+    name = models.CharField(
+        verbose_name='Название произведения',
+        max_length=256,
+    )
     pub_date = models.DateTimeField(verbose_name='Дата выхода')
-    # можем добавить описание, но для БД не надо вроде
-    # description = models.TextField(verbose_name="Описание", null=True, blank=True)
+    description = models.TextField(
+        verbose_name="Описание",
+        null=True,
+        blank=True
+    )
     category = models.ForeignKey(
         Categories,
         on_delete=models.SET_NULL,
@@ -45,8 +48,6 @@ class Title(models.Model):
     )
     genre = models.ManyToManyField(
         Genres,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         verbose_name='Жанр',
         related_name='titles'

@@ -7,5 +7,5 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             request.user.is_authenticated
             and request.user.is_staff
         )
-# 100% еще ваши пермишены будут а-ля IsAuthorOrReadOnly 
+# 100% еще ваши пермишены будут а-ля IsAuthorOrReadOnly
 # и что то там с админами и модераторами
