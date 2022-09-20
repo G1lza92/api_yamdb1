@@ -1,11 +1,11 @@
-from api.views import CategoriesViewSet, GenresViewSet, TitleViewSet
+from api.views import CategoryViewSet, GenreViewSet, TitleViewSet
 from django.urls import include, path
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 # осталось ваши эндпоинты дописать
-router.register(r"categories", CategoriesViewSet, basename="categories")
-router.register(r"genres", GenresViewSet, basename="genres")
+router.register(r"categories", CategoryViewSet, basename="categories")
+router.register(r"genres", GenreViewSet, basename="genres")
 router.register(r"title", TitleViewSet, basename="title")
 
 

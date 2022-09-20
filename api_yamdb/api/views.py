@@ -1,21 +1,20 @@
 from rest_framework import viewsets
-from reviews.models import Categories, Genres, Title
+from reviews.models import Category, Genre, Title
 
 from .permissions import IsAdminOrReadOnly
-from .serializers import (CategoriesSerializer, GenresSerializer,
-                          TitleSerializer)
+from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
 
 
-class CategoriesViewSet(viewsets.ModelViewSet):
-    queryset = Categories.objects.all()
-    serializer_class = CategoriesSerializer
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
 
 
-class GenresViewSet(viewsets.ModelViewSet):
-    queryset = Genres.objects.all()
-    serializer_class = GenresSerializer
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
 
