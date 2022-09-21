@@ -1,2 +1,2 @@
-# api_yamdb
-api_yamdb
+# Описание:
+## Групповой роект «API для YaMDb»
