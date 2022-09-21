@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model
 from rest_framework.viewsets import ModelViewSet
 
-from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ReviewSerializer, TitleSerializer,
-                          UserSerializer)
+from api.serializers import (CategorySerializer, CommentSerializer,
+                             GenreSerializer, ReviewSerializer,
+                             TitleSerializer, UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
