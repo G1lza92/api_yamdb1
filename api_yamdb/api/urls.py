@@ -1,17 +1,28 @@
-from api.views import CategoryViewSet, GenreViewSet, TitleViewSet
 from django.urls import include, path
 from rest_framework import routers
 
-router = routers.DefaultRouter()
-# осталось ваши эндпоинты дописать
-router.register(r"categories", CategoryViewSet, basename="categories")
-router.register(r"genres", GenreViewSet, basename="genres")
-router.register(r"title", TitleViewSet, basename="title")
+from api.views import (CategoryViewSet, CommentViewSet, GenreViewSet,
+                       ReviewViewSet, TitleViewSet, UserViewSet)
 
+app_name = 'api'
+
+router_v1 = routers.DefaultRouter()
+router_v1.register('users', UserViewSet, basename='users')
+router_v1.register('categories', CategoryViewSet, basename='categories')
+router_v1.register('genres', GenreViewSet, basename='genres')
+router_v1.register('titles', TitleViewSet, basename='titles')
+router_v1.register(
+    r'titles/(?P<title_id>\d+)/reviews',
+    ReviewViewSet,
+    basename='reviews'
+)
+router_v1.register(
+    r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
+    CommentViewSet,
+    basename='comments'
+)
 
 urlpatterns = [
-    path('v1/', include(router.urls)),
-    # хз авторизацию так будем делать или еще как-то?
-    # path('v1/', include('djoser.urls')),
-    # path('v1/', include('djoser.urls.jwt')),
+    path(r'v1/', include(router_v1.urls)),
+    path(r'v1/', include('djoser.urls.jwt')),
 ]

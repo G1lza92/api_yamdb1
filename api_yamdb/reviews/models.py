@@ -1,6 +1,5 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.db import models
 
 ROLES = [
     ('user', 'user'),
@@ -98,3 +97,34 @@ class Title(models.Model):
 
     def __str__(self) -> str:
         return self.name[:30]
+
+
+class PubDateModel(models.Model):
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True
+    )
+
+    class Meta:
+        abstract = True
+
+
+class Review(PubDateModel):
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE, related_name='reviews')
+    text = models.TextField('Текст отзыва')
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reviews')
+    score = models.IntegerField(
+        'Оценка', choices=[(i, i) for i in range(1, 11)]
+    )
+
+
+class Comment(PubDateModel):
+    # title = models.ForeignKey(
+    #     Title, on_delete=models.CASCADE, related_name='comments')
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField('Текст комментария')
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='comments')
