@@ -14,7 +14,10 @@ class User(AbstractUser):
         max_length=150,
         unique=True
     )
-    email = models.EmailField('Почта')
+    email = models.EmailField(
+        'Почта',
+        unique=True
+    )
     first_name = models.CharField(
         'Имя',
         max_length=150,
@@ -32,6 +35,12 @@ class User(AbstractUser):
         choices=ROLES,
         default='user',
         blank=True
+    )
+    confirmation_code = models.CharField(
+        'Код подтверждения',
+        max_length=32,
+        blank=True,
+        default=1111
     )
 
     def __str__(self):
