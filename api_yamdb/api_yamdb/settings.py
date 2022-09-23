@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'rest_framework',
-    'djoser',
+    'rest_framework_simplejwt',
     'reviews',
     'api',
 ]
@@ -116,3 +116,7 @@ SWAGGER_SETTINGS = {
         }
     }
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
