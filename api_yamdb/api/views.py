@@ -1,16 +1,16 @@
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.views import APIView
+from django.core.mail import send_mail
+from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.mail import send_mail
 
 from api.permissions import IsAdminOrReadOnly
 from api.serializers import (CategorySerializer, CommentSerializer,
-                             GenreSerializer, ReviewSerializer,
-                             TitleSerializer, UserSerializer,
-                             RegistrationSerializer, GetTokenSerializer)
+                             GenreSerializer, GetTokenSerializer,
+                             RegistrationSerializer, ReviewSerializer,
+                             TitleSerializer, UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
