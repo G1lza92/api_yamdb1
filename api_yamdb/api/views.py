@@ -1,9 +1,11 @@
 from django.core.mail import send_mail
-from rest_framework import status
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404
+from rest_framework import mixins, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.permissions import IsAdminOrReadOnly
@@ -39,10 +41,19 @@ class TitleViewSet(ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     pagination_class = None
 
+    def get_queryset(self):
+        return Title.objects.annotate(rating=Avg('reviews__score'))
+
 
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return self.get_post().reviews
+
+    def get_post(self) -> Title:
+        return get_object_or_404(Title, id=self.kwargs.get('title_id'))
 
 
 class CommentViewSet(ModelViewSet):
@@ -50,22 +61,28 @@ class CommentViewSet(ModelViewSet):
     serializer_class = CommentSerializer
 
 
-class RegistrationView(APIView):
+class RegistrationViewSet(mixins.CreateModelMixin, GenericViewSet):
     permission_classes = (AllowAny,)
+    serializer_class = RegistrationSerializer
 
-    def post(self, request):
-        serializer = RegistrationSerializer(data=request.data)
-        serializer.is_valid()
-        serializer.save()
-        user = User.objects.get(username=request.data['username'])
-        send_mail(
-            'Токен',
-            f'Ваш токен: {user.confirmation_code}',
-            'yamdb@yandex.ru',
-            [f'{user.email}']
+    def create(self, request, *args, **kwargs):
+        if request.data.get('username') == 'me':
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        response = super().create(request, *args, **kwargs)
+        headers = self.get_success_headers(response.data)
+        return Response(
+            response.data, status=status.HTTP_200_OK, headers=headers
         )
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def perform_create(self, serializer):
+        confirmation_code = '2222'  # здесь нужно генерить нормальный код
+        send_mail(
+            'Токен',
+            f'Ваш токен: {confirmation_code}',
+            'yamdb@yandex.ru',
+            [f'{self.request.data["email"]}']
+        )
+        serializer.save(confirmation_code=confirmation_code)
 
 
 class GetTokenView(APIView):
