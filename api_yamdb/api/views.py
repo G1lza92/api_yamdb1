@@ -1,14 +1,16 @@
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status
+from rest_framework import filters, mixins, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.pagination import PageNumberPagination
 
-from api.permissions import IsAdminOrReadOnly
+from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
+                             IsAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, GetTokenSerializer,
                              RegistrationSerializer, ReviewSerializer,
@@ -19,13 +21,16 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsAdmin,)
 
 
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    pagination_class = PageNumberPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("name",)
 
 
 class GenreViewSet(ModelViewSet):
@@ -48,6 +53,7 @@ class TitleViewSet(ModelViewSet):
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
     def get_queryset(self):
         return self.get_post().reviews
@@ -59,6 +65,7 @@ class ReviewViewSet(ModelViewSet):
 class CommentViewSet(ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
 
 class RegistrationViewSet(mixins.CreateModelMixin, GenericViewSet):
