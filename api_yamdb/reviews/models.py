@@ -42,6 +42,7 @@ class User(AbstractUser):
         blank=True,
         default=1111
     )
+    password = None
 
     @property
     def is_admin(self):
@@ -108,7 +109,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ['name']
+        ordering = ['id']
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
