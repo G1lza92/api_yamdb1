@@ -1,53 +1,72 @@
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status
+from rest_framework import filters, mixins, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.permissions import IsAdminOrReadOnly
+from api.filters import TitleFilter
+from api.mixins import CreateDestroyListViewSet
+from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
+                             IsAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, GetTokenSerializer,
                              RegistrationSerializer, ReviewSerializer,
-                             TitleSerializer, UserSerializer)
+                             TitleDetailSerializer, TitleSerializer,
+                             UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsAdmin,)
 
 
-class CategoryViewSet(ModelViewSet):
+class CategoryViewSet(CreateDestroyListViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    pagination_class = PageNumberPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("name",)
+    lookup_field = ('slug')
 
 
-class GenreViewSet(ModelViewSet):
+class GenreViewSet(CreateDestroyListViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    pagination_class = PageNumberPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("name",)
+    lookup_field = ('slug')
 
 
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    detail_serializer_class = TitleDetailSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    filter_class = TitleFilter
 
     def get_queryset(self):
         return Title.objects.annotate(rating=Avg('reviews__score'))
+
+    def get_serializer_class(self):
+        if self.action in ['retrieve', 'list']:
+            return self.detail_serializer_class
+        return super().get_serializer_class()
 
 
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
     def get_queryset(self):
         return self.get_post().reviews
@@ -59,6 +78,7 @@ class ReviewViewSet(ModelViewSet):
 class CommentViewSet(ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
 
 class RegistrationViewSet(mixins.CreateModelMixin, GenericViewSet):
