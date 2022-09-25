@@ -137,10 +137,16 @@ class Review(PubDateModel):
         'Оценка', choices=[(i, i) for i in range(1, 11)]
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_review'
+            )
+        ]
+
 
 class Comment(PubDateModel):
-    # title = models.ForeignKey(
-    #     Title, on_delete=models.CASCADE, related_name='comments')
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
     text = models.TextField('Текст комментария')

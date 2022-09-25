@@ -97,8 +97,14 @@ class ReviewViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, title=self.get_title())
 
+    def create(self, request, *args, **kwargs):
+        title = self.get_title()
+        if title.reviews.filter(author=self.request.user).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+
     def get_queryset(self):
-        return self.get_title().reviews
+        return self.get_title().reviews.all()
 
     def get_title(self) -> Title:
         return get_object_or_404(Title, id=self.kwargs.get('title_id'))
@@ -110,7 +116,7 @@ class CommentViewSet(ModelViewSet):
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
     def get_queryset(self):
-        return self.get_review().comments
+        return self.get_review().comments.all()
 
     def get_review(self) -> Title:
         return get_object_or_404(Review, id=self.kwargs.get('review_id'))
