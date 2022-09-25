@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reviews', '0006_remove_user_password'),
+        ('reviews', '0005_auto_20220925_2242'),
     ]
 
     operations = [

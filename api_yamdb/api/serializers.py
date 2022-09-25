@@ -69,10 +69,15 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
         model = Comment
         fields = '__all__'
+        read_only_fields = ('review',)
 
 
 class RegistrationSerializer(serializers.ModelSerializer):

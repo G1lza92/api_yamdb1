@@ -42,7 +42,6 @@ class User(AbstractUser):
         blank=True,
         default=1111
     )
-    password = None
 
     @property
     def is_admin(self):
