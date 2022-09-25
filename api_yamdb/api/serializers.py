@@ -38,8 +38,7 @@ class TitleSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         slug_field='slug', queryset=Genre.objects.all(), many=True
     )
-    # rating = serializers.IntegerField()
-    # это поле ломает тесты и в целом не нужно
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
@@ -47,17 +46,6 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class TitleDetailSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
-    genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True
-    )
-
-    class Meta:
-        model = Title
-        fields = '__all__'
-
-
-class TitleListSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
     genre = GenreSerializer(many=True)
 

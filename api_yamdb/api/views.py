@@ -2,12 +2,12 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.pagination import PageNumberPagination
 
 from api.filters import TitleFilter
 from api.mixins import CreateDestroyListViewSet
@@ -16,8 +16,8 @@ from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, GetTokenSerializer,
                              RegistrationSerializer, ReviewSerializer,
-                             TitleDetailSerializer, TitleListSerializer,
-                             TitleSerializer, UserSerializer)
+                             TitleDetailSerializer, TitleSerializer,
+                             UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
@@ -51,7 +51,6 @@ class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     detail_serializer_class = TitleDetailSerializer
-    list_serializer_class = TitleListSerializer
     permission_classes = (IsAdminOrReadOnly,)
     filter_class = TitleFilter
 
@@ -59,10 +58,8 @@ class TitleViewSet(ModelViewSet):
         return Title.objects.annotate(rating=Avg('reviews__score'))
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'list']:
             return self.detail_serializer_class
-        if self.action == 'list':
-            return self.list_serializer_class
         return super().get_serializer_class()
 
 
