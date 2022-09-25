@@ -42,6 +42,7 @@ class User(AbstractUser):
         blank=True,
         default=1111
     )
+    password = None
 
     def __str__(self):
         return self.username
@@ -100,7 +101,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ['name']
+        ordering = ['id']
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
