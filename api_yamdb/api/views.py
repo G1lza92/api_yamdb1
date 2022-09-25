@@ -1,30 +1,56 @@
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, mixins, status
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+
+from rest_framework import filters, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.pagination import PageNumberPagination
 
 from api.filters import TitleFilter
 from api.mixins import CreateDestroyListViewSet
 from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                              IsAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
-                             GenreSerializer, GetTokenSerializer,
-                             RegistrationSerializer, ReviewSerializer,
-                             TitleDetailSerializer, TitleSerializer,
+                             GenreSerializer, GetTokenSerializer, IsAdmin,
+                             IsAdminOrReadOnly, RegistrationSerializer,
+                             ReviewSerializer, TitleDetailSerializer,
+                             TitleSerializer, UsersForAdminSerializer,
                              UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UsersForAdminSerializer
     permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter)
+    search_fields = ('username',)
+
+    @action(
+        detail=False, methods=['get', 'patch'],
+        url_name='me', url_path='me',
+        permission_classes=(IsAuthenticated,)
+    )
+    def user_information(self, request):
+        if request.method == 'PATCH':
+            serializer = UserSerializer(
+                request.user, data=request.data, partial=True
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(CreateDestroyListViewSet):
@@ -81,28 +107,27 @@ class CommentViewSet(ModelViewSet):
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
 
-class RegistrationViewSet(mixins.CreateModelMixin, GenericViewSet):
+class RegistrationViewSet(APIView):
     permission_classes = (AllowAny,)
-    serializer_class = RegistrationSerializer
 
-    def create(self, request, *args, **kwargs):
+    def post(delf, request):
+        serializer = RegistrationSerializer(data=request.data)
         if request.data.get('username') == 'me':
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        response = super().create(request, *args, **kwargs)
-        headers = self.get_success_headers(response.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Токен',
+                f'Ваш токен: {confirmation_code}',
+                'yamdb@yandex.ru',
+                [f'{request.data["email"]}']
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
-            response.data, status=status.HTTP_200_OK, headers=headers
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
         )
-
-    def perform_create(self, serializer):
-        confirmation_code = '2222'  # здесь нужно генерить нормальный код
-        send_mail(
-            'Токен',
-            f'Ваш токен: {confirmation_code}',
-            'yamdb@yandex.ru',
-            [f'{self.request.data["email"]}']
-        )
-        serializer.save(confirmation_code=confirmation_code)
 
 
 class GetTokenView(APIView):
@@ -110,21 +135,19 @@ class GetTokenView(APIView):
 
     def post(self, request):
         serializer = GetTokenSerializer(data=request.data)
-        serializer.is_valid()
-        data = serializer.validated_data
-        try:
-            user = User.objects.get(username=request.data['username'])
-        except User.DoesNotExist:
+        if serializer.is_valid():
+            user = get_object_or_404(User, username=request.data['username'])
+            confirmation_code = request.data.get('confirmation_code')
+            if default_token_generator.check_token(user, confirmation_code):
+                return Response(
+                    {'token': str(RefreshToken.for_user(user).access_token)},
+                    status=status.HTTP_201_CREATED
+                )
             return Response(
-                {data.get('username'): 'Пользователь не найден'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        if request.data.get('confirmation_code') == user.confirmation_code:
-            return Response(
-                {'token': str(RefreshToken.for_user(user).access_token)},
-                status=status.HTTP_201_CREATED
+                {confirmation_code: 'Неверный код подверждения'},
+                status=status.HTTP_400_BAD_REQUEST
             )
         return Response(
-            {data.get('confirmation_code'): 'Неверный код подверждения'},
-            status=status.HTTP_404_NOT_FOUND
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
         )
