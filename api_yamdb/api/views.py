@@ -9,11 +9,14 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
 
+from api.filters import TitleFilter
+from api.mixins import CreateDestroyListViewSet
 from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                              IsAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, GetTokenSerializer,
                              RegistrationSerializer, ReviewSerializer,
+                             TitleDetailSerializer, TitleListSerializer,
                              TitleSerializer, UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
@@ -24,30 +27,43 @@ class UserViewSet(ModelViewSet):
     permission_classes = (IsAdmin,)
 
 
-class CategoryViewSet(ModelViewSet):
+class CategoryViewSet(CreateDestroyListViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
     pagination_class = PageNumberPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ("name",)
+    lookup_field = ('slug')
 
 
-class GenreViewSet(ModelViewSet):
+class GenreViewSet(CreateDestroyListViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    pagination_class = PageNumberPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("name",)
+    lookup_field = ('slug')
 
 
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    detail_serializer_class = TitleDetailSerializer
+    list_serializer_class = TitleListSerializer
     permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    filter_class = TitleFilter
 
     def get_queryset(self):
         return Title.objects.annotate(rating=Avg('reviews__score'))
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return self.detail_serializer_class
+        if self.action == 'list':
+            return self.list_serializer_class
+        return super().get_serializer_class()
 
 
 class ReviewViewSet(ModelViewSet):
