@@ -22,9 +22,9 @@ router_v1.register(
     CommentViewSet,
     basename='comments'
 )
-router_v1.register('auth/signup', RegistrationViewSet, basename='signup')
 
 urlpatterns = [
     path('v1/', include(router_v1.urls)),
     path('v1/auth/token/', GetTokenView.as_view(), name='token'),
+    path('v1/auth/signup/', RegistrationViewSet.as_view(), name='signup')
 ]

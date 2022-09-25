@@ -4,16 +4,22 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField()
+    email = serializers.CharField()
+    role = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = User
         fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'role',
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
+        )
+
+
+class UsersForAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
         )
 
 
@@ -76,6 +82,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class GetTokenSerializer(serializers.ModelSerializer):
+    username = serializers.CharField()
 
     class Meta:
         model = User
