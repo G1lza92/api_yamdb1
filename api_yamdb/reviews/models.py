@@ -123,7 +123,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ['id']
+        ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
@@ -131,27 +131,43 @@ class Title(models.Model):
         return self.name[:30]
 
 
-class PubDateModel(models.Model):
+class NoticeModel(models.Model):
     pub_date = models.DateTimeField(
-        'Дата публикации',
+        'Дата создания',
         auto_now_add=True
+    )
+    text = models.TextField('Текст', help_text='Введите текст',)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='%(class)ss',
+        verbose_name='Автор',
+        help_text='Выберите автора',
     )
 
     class Meta:
         abstract = True
+        ordering = ('-pub_date',)
+
+    def __str__(self) -> str:
+        return self.text[:30]
 
 
-class Review(PubDateModel):
+class Review(NoticeModel):
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name='reviews')
-    text = models.TextField('Текст отзыва')
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='reviews')
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Произведение',
+        help_text='Выберите произведение',
+    )
     score = models.IntegerField(
         'Оценка', choices=[(i, i) for i in range(1, 11)]
     )
 
     class Meta:
+        verbose_name = 'Обзор'
+        verbose_name_plural = 'Обзоры'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
@@ -160,9 +176,15 @@ class Review(PubDateModel):
         ]
 
 
-class Comment(PubDateModel):
+class Comment(NoticeModel):
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name='comments')
-    text = models.TextField('Текст комментария')
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='comments')
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Обзор',
+        help_text='Выберите обзор',
+    )
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
