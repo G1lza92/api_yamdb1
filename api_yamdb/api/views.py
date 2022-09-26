@@ -19,13 +19,13 @@ from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, GetTokenSerializer,
                              RegistrationSerializer, ReviewSerializer,
                              TitleDetailSerializer, TitleSerializer,
-                             UserSerializer, UsersForAdminSerializer)
+                             UserSerializer)
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UsersForAdminSerializer
+    serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
@@ -40,13 +40,14 @@ class UserViewSet(ModelViewSet):
             serializer = UserSerializer(
                 request.user, data=request.data, partial=True
             )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer.is_valid(raise_exception=True)
+            if serializer.validated_data.get('role'):
+                serializer.validated_data['role'] = request.user.role
+            serializer.save()
             return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
+                serializer.validated_data, status=status.HTTP_200_OK
             )
+        serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
