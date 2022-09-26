@@ -1,7 +1,8 @@
-from django.contrib.auth.models import AbstractUser
 from datetime import datetime as dt
-from django.db import models
+
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator
+from django.db import models
 
 ROLES = [
     ('user', 'user'),
@@ -53,7 +54,7 @@ class User(AbstractUser):
     def is_moderator(self):
         return self.role == 'moderator'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.username
 
 
@@ -73,7 +74,7 @@ class CategoryGenreBase(models.Model):
         abstract = True
         ordering = ('name',)
 
-    def str(self):
+    def __str__(self) -> str:
         return self.name[:30]
 
 
