@@ -4,18 +4,7 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField()
-    email = serializers.CharField()
-    role = serializers.StringRelatedField(read_only=True)
 
-    class Meta:
-        model = User
-        fields = (
-            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
-        )
-
-
-class UsersForAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
@@ -51,27 +40,32 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TitleDetailSerializer(serializers.ModelSerializer):
+class TitleDetailSerializer(TitleSerializer):
     category = CategorySerializer()
     genre = GenreSerializer(many=True)
 
-    class Meta:
-        model = Title
-        fields = '__all__'
-
 
 class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True, slug_field='username'
+    )
 
     class Meta:
         model = Review
         fields = '__all__'
+        read_only_fields = ('title',)
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
 
     class Meta:
         model = Comment
         fields = '__all__'
+        read_only_fields = ('review',)
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
