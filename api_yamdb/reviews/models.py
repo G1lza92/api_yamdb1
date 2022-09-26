@@ -1,4 +1,7 @@
+from datetime import datetime as dt
+
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 ROLES = [
@@ -51,42 +54,54 @@ class User(AbstractUser):
     def is_moderator(self):
         return self.role == 'moderator'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.username
 
 
-class Category(models.Model):
-    name = models.CharField(verbose_name='Категория', max_length=256)
-    slug = models.SlugField(max_length=50, unique=True)
+class CategoryGenreBase(models.Model):
+    name = models.CharField(
+        max_length=256,
+        db_index=True,
+        verbose_name='Название'
+    )
+    slug = models.SlugField(
+        unique=True,
+        max_length=50,
+        verbose_name='URL-метка',
+    )
 
     class Meta:
-        ordering = ['name']
+        abstract = True
+        ordering = ('name',)
+
+    def __str__(self) -> str:
+        return self.name[:30]
+
+
+class Category(CategoryGenreBase):
+
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
-    def __str__(self) -> str:
-        return self.name[:30]
 
+class Genre(CategoryGenreBase):
 
-class Genre(models.Model):
-    name = models.CharField(verbose_name='Жанр', max_length=256)
-    slug = models.SlugField(max_length=50, unique=True)
-
-    class Meta:
-        ordering = ['name']
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
-    def __str__(self) -> str:
-        return self.name[:30]
-
 
 class Title(models.Model):
-    name = models.CharField(
-        verbose_name='Название произведения',
-        max_length=256,
+    name = models.TextField(verbose_name='Название произведения')
+    year = models.IntegerField(
+        validators=[
+            MaxValueValidator(
+                limit_value=dt.now().year,
+                message='Произведение еще не вышло!'
+            )
+        ]
     )
-    year = models.IntegerField(verbose_name='Год выпуска')
     description = models.TextField(
         verbose_name="Описание",
         null=True,
