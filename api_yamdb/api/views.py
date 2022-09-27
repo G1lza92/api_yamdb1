@@ -134,6 +134,7 @@ class CommentViewSet(ModelWithoutUpdateViewSet):
         return self.get_review().comments.all()
 
 
+<<<<<<< HEAD
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
@@ -150,6 +151,41 @@ def signup(request):
         [f'{request.data["email"]}']
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
+=======
+class RegistrationView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(delf, request):
+        try:
+            serializer = RegistrationSerializer(data=request.data)
+            serializer.is_valid()
+            user = User.objects.get(username=request.data.get('username'))
+            confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Токен',
+                f'Ваш токен: {confirmation_code}',
+                EMAIL_ADRESS,
+                [f'{request.data["email"]}']
+            )
+            user.is_active = False
+            user.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            serializer = RegistrationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Токен',
+                f'Ваш токен: {confirmation_code}',
+                EMAIL_ADRESS,
+                [f'{request.data["email"]}']
+            )
+            user = User.objects.get(username=serializer.data.get('username'))
+            user.is_active = False
+            user.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+>>>>>>> 1437ece (Регисрация и получение токена)
 
 
 class GetTokenView(APIView):
@@ -169,6 +205,12 @@ class GetTokenView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(
+<<<<<<< HEAD
             {confirmation_code: 'Неверный код подверждения'},
             status=status.HTTP_400_BAD_REQUEST
         )
+=======
+               {confirmation_code: 'Неверный код подверждения'},
+               status=status.HTTP_400_BAD_REQUEST
+            )
+>>>>>>> 1437ece (Регисрация и получение токена)
