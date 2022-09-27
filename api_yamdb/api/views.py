@@ -4,7 +4,7 @@ from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -134,39 +134,22 @@ class CommentViewSet(ModelWithoutUpdateViewSet):
         return self.get_review().comments.all()
 
 
-class RegistrationView(APIView):
-    permission_classes = (AllowAny,)
-
-    def post(delf, request):
-        try:
-            serializer = RegistrationSerializer(data=request.data)
-            serializer.is_valid()
-            user = User.objects.get(username=request.data.get('username'))
-            confirmation_code = default_token_generator.make_token(user)
-            send_mail(
-                'Токен',
-                f'Ваш токен: {confirmation_code}',
-                EMAIL_ADRESS,
-                [f'{request.data["email"]}']
-            )
-            user.is_active = False
-            user.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            serializer = RegistrationSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            confirmation_code = default_token_generator.make_token(user)
-            send_mail(
-                'Токен',
-                f'Ваш токен: {confirmation_code}',
-                EMAIL_ADRESS,
-                [f'{request.data["email"]}']
-            )
-            user = User.objects.get(username=serializer.data.get('username'))
-            user.is_active = False
-            user.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def signup(request):
+    serializer = RegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user, _ = User.objects.get_or_create(
+        **serializer.validated_data, is_active=False
+    )
+    confirmation_code = default_token_generator.make_token(user)
+    send_mail(
+        'Токен',
+        f'Ваш токен: {confirmation_code}',
+        EMAIL_ADRESS,
+        [f'{request.data["email"]}']
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetTokenView(APIView):
@@ -186,6 +169,6 @@ class GetTokenView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(
-               {confirmation_code: 'Неверный код подверждения'},
-               status=status.HTTP_400_BAD_REQUEST
-            )
+            {confirmation_code: 'Неверный код подверждения'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
