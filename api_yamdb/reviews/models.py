@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 
 ROLES = [
@@ -15,10 +15,17 @@ class User(AbstractUser):
     username = models.CharField(
         'Имя пользователя',
         max_length=150,
-        unique=True
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+$',
+                message='Имя содержит недоступные символы'
+            )
+        ]
     )
     email = models.EmailField(
         'Почта',
+        max_length=254,
         unique=True
     )
     first_name = models.CharField(
@@ -43,7 +50,7 @@ class User(AbstractUser):
         'Код подтверждения',
         max_length=32,
         blank=True,
-        default=1111
+        default='1111'
     )
 
     @property

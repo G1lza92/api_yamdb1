@@ -106,6 +106,13 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'username',)
 
+    def validate_username(self, value):
+        if value.lower() == 'me':
+            raise serializers.ValidationError(
+                'Для имени пользователя нельзя использовать "me"'
+            )
+        return value
+
 
 class GetTokenSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
