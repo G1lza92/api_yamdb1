@@ -20,6 +20,7 @@ from api.serializers import (CategorySerializer, CommentSerializer,
                              RegistrationSerializer, ReviewSerializer,
                              TitleDetailSerializer, TitleSerializer,
                              UserSerializer)
+from api_yamdb.settings import EMAIL_ADRESS
 from reviews.models import Category, Genre, Review, Title, User
 
 
@@ -137,23 +138,35 @@ class RegistrationView(APIView):
     permission_classes = (AllowAny,)
 
     def post(delf, request):
-        serializer = RegistrationSerializer(data=request.data)
-        if request.data.get('username') == 'me':
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        if serializer.is_valid():
+        try:
+            serializer = RegistrationSerializer(data=request.data)
+            serializer.is_valid()
+            user = User.objects.get(username=request.data.get('username'))
+            confirmation_code = default_token_generator.make_token(user)
+            send_mail(
+                'Токен',
+                f'Ваш токен: {confirmation_code}',
+                EMAIL_ADRESS,
+                [f'{request.data["email"]}']
+            )
+            user.is_active = False
+            user.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            serializer = RegistrationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             user = serializer.save()
             confirmation_code = default_token_generator.make_token(user)
             send_mail(
                 'Токен',
                 f'Ваш токен: {confirmation_code}',
-                'yamdb@yandex.ru',
+                EMAIL_ADRESS,
                 [f'{request.data["email"]}']
             )
+            user = User.objects.get(username=serializer.data.get('username'))
+            user.is_active = False
+            user.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 class GetTokenView(APIView):
@@ -161,19 +174,18 @@ class GetTokenView(APIView):
 
     def post(self, request):
         serializer = GetTokenSerializer(data=request.data)
-        if serializer.is_valid():
-            user = get_object_or_404(User, username=request.data['username'])
-            confirmation_code = request.data.get('confirmation_code')
-            if request.data.get('confirmation_code') == user.confirmation_code:
-                return Response(
-                    {'token': str(RefreshToken.for_user(user).access_token)},
-                    status=status.HTTP_201_CREATED
-                )
+        serializer.is_valid(raise_exception=True)
+        user = get_object_or_404(User, username=request.data['username'])
+        confirmation_code = serializer.data.get('confirmation_code')
+        if (default_token_generator.check_token(user, confirmation_code)
+                and not user.is_active):
+            user.is_active = True
+            user.save()
             return Response(
-                {confirmation_code: 'Неверный код подверждения'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'token': str(RefreshToken.for_user(user).access_token)},
+                status=status.HTTP_201_CREATED
             )
         return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+               {confirmation_code: 'Неверный код подверждения'},
+               status=status.HTTP_400_BAD_REQUEST
+            )
