@@ -9,10 +9,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.filters import TitleFilter
+from api.mixins import PatchModelMixin
 from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
                              IsAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
@@ -23,14 +23,24 @@ from api.serializers import (CategorySerializer, CommentSerializer,
 from reviews.models import Category, Genre, Review, Title, User
 
 
-class UserViewSet(ModelViewSet):
+class ModelWithoutUpdateViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    PatchModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet
+):
+    pass
+
+
+class UserViewSet(ModelWithoutUpdateViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
-    # http_method_names = ['get', 'post', 'patch', 'delete']
 
     @action(
         detail=False, methods=['get', 'patch'],
@@ -79,7 +89,7 @@ class GenreViewSet(CategoryGenreBaseViewSet):
     serializer_class = GenreSerializer
 
 
-class TitleViewSet(ModelViewSet):
+class TitleViewSet(ModelWithoutUpdateViewSet):
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['rating', 'name', 'description', 'year']
@@ -95,7 +105,7 @@ class TitleViewSet(ModelViewSet):
         return super().get_serializer_class()
 
 
-class ReviewViewSet(ModelViewSet):
+class ReviewViewSet(ModelWithoutUpdateViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
@@ -109,7 +119,7 @@ class ReviewViewSet(ModelViewSet):
         return self.get_title().reviews.all()
 
 
-class CommentViewSet(ModelViewSet):
+class CommentViewSet(ModelWithoutUpdateViewSet):
     serializer_class = CommentSerializer
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
