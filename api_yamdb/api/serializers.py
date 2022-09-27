@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
@@ -105,6 +106,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'username',)
+
+    def validate(self, attrs):
+        if (
+            User.objects.filter(
+                Q(username=attrs['username']) & ~Q(email=attrs['email'])
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                'Пользователь с таким именем уже есть'
+            )
+        if (
+            User.objects.filter(
+                ~Q(username=attrs['username']) & Q(email=attrs['email'])
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                'Пользователь с такой почтой уже есть'
+            )
+        return super().validate(attrs)
 
     def validate_username(self, value):
         if value.lower() == 'me':
