@@ -4,10 +4,17 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 
+
+class Roles():
+    user = 'user'
+    moderator = 'moderator'
+    admin = 'admin'
+
+
 ROLES = [
-    ('user', 'user'),
-    ('moderator', 'moderator'),
-    ('admin', 'admin'),
+    (Roles.user, 'Пользователь'),
+    (Roles.moderator, 'Модератор'),
+    (Roles.admin, 'Администратор'),
 ]
 
 
@@ -41,28 +48,20 @@ class User(AbstractUser):
     bio = models.TextField('Биография', blank=True)
     role = models.CharField(
         'Роль',
-        max_length=20,
+        max_length=max([len(x) for x, _ in ROLES]),
         choices=ROLES,
-        default='user',
+        default=Roles.user,
         blank=True
     )
-    confirmation_code = models.CharField(
-        'Код подтверждения',
-        max_length=32,
-        blank=True,
-        default='1111'
-    )
+    confirmation_code = ''
 
     @property
     def is_admin(self):
-        return self.is_staff or self.role == 'admin'
+        return self.is_staff or self.role == Roles.admin
 
     @property
     def is_moderator(self):
-        return self.role == 'moderator'
-
-    def __str__(self) -> str:
-        return self.username
+        return self.role == Roles.moderator
 
 
 class CategoryGenreBase(models.Model):
