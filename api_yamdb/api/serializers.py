@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.core.validators import RegexValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
@@ -81,7 +81,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         if (
             self.context['request'].method != 'POST'
             or not get_object_or_404(
-                Title, pk=self.context['view'].kwargs['title_id']
+                Title, pk=self.context['view'].kwargs.get('title_id')
             ).reviews.filter(author=self.context['request'].user).exists()
         ):
             return data
@@ -101,30 +101,16 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'pub_date',)
 
 
-class RegistrationSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('email', 'username',)
-
-    def validate(self, attrs):
-        if (
-            User.objects.filter(
-                Q(username=attrs['username']) & ~Q(email=attrs['email'])
-            ).exists()
-        ):
-            raise serializers.ValidationError(
-                'Пользователь с таким именем уже есть'
+class RegistrationSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+$',
+                message='Имя содержит недоступные символы'
             )
-        if (
-            User.objects.filter(
-                ~Q(username=attrs['username']) & Q(email=attrs['email'])
-            ).exists()
-        ):
-            raise serializers.ValidationError(
-                'Пользователь с такой почтой уже есть'
-            )
-        return super().validate(attrs)
+        ]
+    )
+    email = serializers.EmailField()
 
     def validate_username(self, value):
         if value.lower() == 'me':
@@ -134,9 +120,13 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return value
 
 
-class GetTokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField()
-
-    class Meta:
-        model = User
-        fields = ('username', 'confirmation_code',)
+class GetTokenSerializer(serializers.Serializer):
+    username = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+$',
+                message='Имя содержит недоступные символы'
+            )
+        ]
+    )
+    confirmation_code = serializers.CharField()

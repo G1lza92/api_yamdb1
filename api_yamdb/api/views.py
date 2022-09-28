@@ -1,6 +1,5 @@
-from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
@@ -8,34 +7,23 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.filters import TitleFilter
-from api.mixins import PatchModelMixin
-from api.permissions import (IsAdmin, IsAdminModeratorOwnerOrReadOnly,
-                             IsAdminOrReadOnly)
-from api.serializers import (CategorySerializer, CommentSerializer,
-                             GenreSerializer, GetTokenSerializer,
-                             RegistrationSerializer, ReviewSerializer,
-                             TitleDetailSerializer, TitleSerializer,
-                             UserSerializer)
+from api.permissions import (
+    IsAdmin, IsAdminModeratorOwnerOrReadOnly, IsAdminOrReadOnly
+)
+from api.serializers import (
+    CategorySerializer, CommentSerializer, GenreSerializer, GetTokenSerializer,
+    RegistrationSerializer, ReviewSerializer, TitleDetailSerializer,
+    TitleSerializer, UserSerializer
+)
+from api.tokens import token_generator
 from api_yamdb.settings import EMAIL_ADRESS
 from reviews.models import Category, Genre, Review, Title, User
 
 
-class ModelWithoutUpdateViewSet(
-    mixins.CreateModelMixin,
-    mixins.RetrieveModelMixin,
-    PatchModelMixin,
-    mixins.DestroyModelMixin,
-    mixins.ListModelMixin,
-    viewsets.GenericViewSet
-):
-    pass
-
-
-class UserViewSet(ModelWithoutUpdateViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
@@ -90,7 +78,7 @@ class GenreViewSet(CategoryGenreBaseViewSet):
     serializer_class = GenreSerializer
 
 
-class TitleViewSet(ModelWithoutUpdateViewSet):
+class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['rating', 'name', 'description', 'year']
@@ -106,7 +94,7 @@ class TitleViewSet(ModelWithoutUpdateViewSet):
         return super().get_serializer_class()
 
 
-class ReviewViewSet(ModelWithoutUpdateViewSet):
+class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
@@ -120,7 +108,7 @@ class ReviewViewSet(ModelWithoutUpdateViewSet):
         return self.get_title().reviews.all()
 
 
-class CommentViewSet(ModelWithoutUpdateViewSet):
+class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (IsAdminModeratorOwnerOrReadOnly,)
 
@@ -139,36 +127,46 @@ class CommentViewSet(ModelWithoutUpdateViewSet):
 def signup(request):
     serializer = RegistrationSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    user, _ = User.objects.get_or_create(
-        **serializer.validated_data, is_active=False
-    )
-    confirmation_code = default_token_generator.make_token(user)
+    username = request.data["username"]
+    email = request.data["email"]
+    if (User.objects.filter(Q(username=username) & ~Q(email=email)).exists()):
+        return Response(
+            {'username': 'Пользователь с таким именем уже есть.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if (User.objects.filter(~Q(username=username) & Q(email=email)).exists()):
+        return Response(
+            {'username': 'Пользователь с такой почтой уже есть.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    user, _ = User.objects.get_or_create(**serializer.validated_data)
+    user.is_active = False
+    user.save()
+    confirmation_code = token_generator.make_token(user)
     send_mail(
         'Токен',
         f'Ваш токен: {confirmation_code}',
         EMAIL_ADRESS,
-        [f'{request.data["email"]}']
+        [f'{email}']
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetTokenView(APIView):
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        serializer = GetTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = get_object_or_404(User, username=request.data['username'])
-        confirmation_code = serializer.data.get('confirmation_code')
-        if (default_token_generator.check_token(user, confirmation_code)
-                and not user.is_active):
-            user.is_active = True
-            user.save()
-            return Response(
-                {'token': str(RefreshToken.for_user(user).access_token)},
-                status=status.HTTP_201_CREATED
-            )
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def token(request):
+    serializer = GetTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = get_object_or_404(User, username=request.data['username'])
+    confirmation_code = serializer.data['confirmation_code']
+    if token_generator.check_token(user, confirmation_code):
+        user.is_active = True
+        user.save()
         return Response(
-            {confirmation_code: 'Неверный код подверждения'},
-            status=status.HTTP_400_BAD_REQUEST
+            {'token': str(RefreshToken.for_user(user).access_token)},
+            status=status.HTTP_201_CREATED
         )
+    return Response(
+        {confirmation_code: 'Неверный код подверждения.'},
+        status=status.HTTP_400_BAD_REQUEST
+    )
