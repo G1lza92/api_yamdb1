@@ -96,12 +96,16 @@ class Genre(CategoryGenreBase):
         verbose_name_plural = 'Жанры'
 
 
+def get_current_year():
+    return dt.now().year
+
+
 class Title(models.Model):
     name = models.TextField(verbose_name='Название произведения')
     year = models.IntegerField(
         validators=[
             MaxValueValidator(
-                limit_value=dt.now().year,
+                limit_value=get_current_year,
                 message='Произведение еще не вышло!'
             )
         ]
