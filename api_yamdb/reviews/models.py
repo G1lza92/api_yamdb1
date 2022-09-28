@@ -1,20 +1,19 @@
 from datetime import datetime as dt
 
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator, RegexValidator
+from django.core.validators import (
+    MaxValueValidator, MinValueValidator, RegexValidator
+)
 from django.db import models
 
 
-class Roles():
-    user = 'user'
-    moderator = 'moderator'
-    admin = 'admin'
-
-
+ROLE_USER = 'user'
+ROLE_MODERATOR = 'moderator'
+ROLE_ADMIN = 'admin'
 ROLES = [
-    (Roles.user, 'Пользователь'),
-    (Roles.moderator, 'Модератор'),
-    (Roles.admin, 'Администратор'),
+    (ROLE_USER, 'Пользователь'),
+    (ROLE_MODERATOR, 'Модератор'),
+    (ROLE_ADMIN, 'Администратор'),
 ]
 
 
@@ -48,20 +47,19 @@ class User(AbstractUser):
     bio = models.TextField('Биография', blank=True)
     role = models.CharField(
         'Роль',
-        max_length=max([len(x) for x, _ in ROLES]),
+        max_length=max(len(role) for role, _ in ROLES),
         choices=ROLES,
-        default=Roles.user,
+        default=ROLE_USER,
         blank=True
     )
-    confirmation_code = ''
 
     @property
     def is_admin(self):
-        return self.role == Roles.admin
+        return self.is_superuser or self.role == ROLE_ADMIN
 
     @property
     def is_moderator(self):
-        return self.role == Roles.moderator
+        return self.role == ROLE_MODERATOR
 
 
 class CategoryGenreBase(models.Model):
@@ -146,7 +144,6 @@ class NoticeModel(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='%(class)ss',
         verbose_name='Автор',
         help_text='Выберите автора',
     )
@@ -154,24 +151,33 @@ class NoticeModel(models.Model):
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
+        default_related_name = '%(class)ss'
 
     def __str__(self) -> str:
-        return self.text[:30]
+        return f'{self.pub_date} {self.author} {self.text:.30}'
 
 
 class Review(NoticeModel):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name='reviews',
         verbose_name='Произведение',
         help_text='Выберите произведение',
     )
     score = models.IntegerField(
-        'Оценка', choices=[(i, i) for i in range(1, 11)]
+        verbose_name='Оценка',
+        help_text='Укажите оценку произведения (от 1 до 10)',
+        validators=[
+            MinValueValidator(
+                1, message='Укажите оценку больше либо равную 1'
+            ),
+            MaxValueValidator(
+                10, message='Укажите оценку меньше либо равную 10'
+            ),
+        ]
     )
 
-    class Meta:
+    class Meta(NoticeModel.Meta):
         verbose_name = 'Обзор'
         verbose_name_plural = 'Обзоры'
         constraints = [
@@ -186,11 +192,10 @@ class Comment(NoticeModel):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        related_name='comments',
         verbose_name='Обзор',
         help_text='Выберите обзор',
     )
 
-    class Meta:
+    class Meta(NoticeModel.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
