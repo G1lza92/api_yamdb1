@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from api.validators import UsernameValidator
+from .validators import username_validator
 
 
 ROLE_USER = 'user'
@@ -22,7 +22,7 @@ class User(AbstractUser):
         'Имя пользователя',
         max_length=150,
         unique=True,
-        validators=[UsernameValidator()]
+        validators=[username_validator]
     )
     email = models.EmailField(
         'Почта',
