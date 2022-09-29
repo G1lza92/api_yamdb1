@@ -1,8 +1,4 @@
 from django.core.exceptions import ValidationError
-<<<<<<< HEAD
-from django.core.validators import RegexValidator
-=======
->>>>>>> 2f0c143 (validation)
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
@@ -108,40 +104,13 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(
-<<<<<<< HEAD
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Имя содержит недоступные символы'
-            )
-        ]
-    )
-    email = serializers.EmailField()
-
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Для имени пользователя нельзя использовать "me"'
-            )
-        return value
-=======
         validators=[UsernameValidator()]
     )
     email = serializers.EmailField()
->>>>>>> 2f0c143 (validation)
 
 
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(
-<<<<<<< HEAD
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Имя содержит недоступные символы'
-            )
-        ]
-=======
         validators=[UsernameValidator()]
->>>>>>> 2f0c143 (validation)
     )
     confirmation_code = serializers.CharField()
