@@ -1,3 +1,5 @@
+from datetime import datetime
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
@@ -18,7 +20,6 @@ from api.serializers import (
     RegistrationSerializer, ReviewSerializer, TitleDetailSerializer,
     TitleSerializer, UserSerializer
 )
-from api.tokens import token_generator
 from api_yamdb.settings import EMAIL_ADRESS
 from reviews.models import Category, Genre, Review, Title, User
 
@@ -125,24 +126,29 @@ class CommentViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
+    # на основе запроса создаем сериализатор
     serializer = RegistrationSerializer(data=request.data)
+    # производим валидацию сериализатора
     serializer.is_valid(raise_exception=True)
     username = request.data["username"]
     email = request.data["email"]
+    # проверяем на наличие в базе с таким же именем, но другой почты
     if (User.objects.filter(Q(username=username) & ~Q(email=email)).exists()):
         return Response(
             {'username': 'Пользователь с таким именем уже есть.'},
             status=status.HTTP_400_BAD_REQUEST
         )
+    # проверяем на наличие в базе с такой же почтой, но другим именем
     if (User.objects.filter(~Q(username=username) & Q(email=email)).exists()):
         return Response(
             {'username': 'Пользователь с такой почтой уже есть.'},
             status=status.HTTP_400_BAD_REQUEST
         )
+    # получаем либо создаем пользователя
     user, _ = User.objects.get_or_create(**serializer.validated_data)
-    user.is_active = False
-    user.save()
-    confirmation_code = token_generator.make_token(user)
+    # генерируем пин-код (на основе pk и last_login)
+    confirmation_code = default_token_generator.make_token(user)
+    # отправляем писмо с пин-кодом
     send_mail(
         'Токен',
         f'Ваш токен: {confirmation_code}',
@@ -155,18 +161,25 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token(request):
+    # на основе запроса создаем сериализатор
     serializer = GetTokenSerializer(data=request.data)
+    # производим валидацию сериализатора
     serializer.is_valid(raise_exception=True)
+    # получаем из базы пользователя
     user = get_object_or_404(User, username=request.data['username'])
-    confirmation_code = serializer.data['confirmation_code']
-    if token_generator.check_token(user, confirmation_code):
-        user.is_active = True
-        user.save()
+    # проверяем пин-код
+    confirmation_code_is_valid = default_token_generator.check_token(
+        user, serializer.data['confirmation_code']
+    )
+    # обновляем last_login, чтобы ранее выданный пин-код перестал быть валидным
+    user.last_login = datetime.now()
+    user.save()
+    if confirmation_code_is_valid:
         return Response(
             {'token': str(RefreshToken.for_user(user).access_token)},
             status=status.HTTP_201_CREATED
         )
     return Response(
-        {confirmation_code: 'Неверный код подверждения.'},
+        {'confirmation_code': 'Неверный код подверждения.'},
         status=status.HTTP_400_BAD_REQUEST
     )
