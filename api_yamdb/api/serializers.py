@@ -104,13 +104,15 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(
+        max_length=150,
         validators=[UsernameValidator()]
     )
-    email = serializers.EmailField()
+    email = serializers.EmailField(max_length=254)
 
 
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(
+        max_length=150,
         validators=[UsernameValidator()]
     )
-    confirmation_code = serializers.CharField()
+    confirmation_code = serializers.CharField(max_length=24)
