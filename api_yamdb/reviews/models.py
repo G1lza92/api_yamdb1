@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -20,23 +21,23 @@ ROLES = [
 class User(AbstractUser):
     username = models.CharField(
         'Имя пользователя',
-        max_length=150,
+        max_length=settings.USERNAME_MAX_LENGTH,
         unique=True,
         validators=[username_validator]
     )
     email = models.EmailField(
         'Почта',
-        max_length=254,
+        max_length=settings.EMAIL_MAX_LENGTH,
         unique=True
     )
     first_name = models.CharField(
         'Имя',
-        max_length=150,
+        max_length=settings.FIRST_NAME_MAX_LENGTH,
         blank=True
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=150,
+        max_length=settings.LAST_NAME_MAX_LENGTH,
         blank=True
     )
     bio = models.TextField('Биография', blank=True)
@@ -50,11 +51,7 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return (
-            self.is_superuser
-            or self.is_staff
-            or self.role == ROLE_ADMIN
-        )
+        return self.is_staff or self.role == ROLE_ADMIN
 
     @property
     def is_moderator(self):
@@ -63,13 +60,13 @@ class User(AbstractUser):
 
 class CategoryGenreBase(models.Model):
     name = models.CharField(
-        max_length=256,
+        max_length=settings.NAME_MAX_LENGTH,
         db_index=True,
         verbose_name='Название'
     )
     slug = models.SlugField(
         unique=True,
-        max_length=50,
+        max_length=settings.SLUG_MAX_LENGTH,
         verbose_name='URL-метка',
     )
 

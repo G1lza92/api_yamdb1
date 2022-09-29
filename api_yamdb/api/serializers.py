@@ -1,25 +1,22 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import username_validator
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        validators=[
-            username_validator,
-            UniqueValidator(queryset=User.objects.all())
-        ]
-    )
 
     class Meta:
         model = User
         fields = (
             'username', 'email', 'first_name', 'last_name', 'bio', 'role',
         )
+
+    def validate_username(self, value):
+        return username_validator(value)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -110,15 +107,19 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_MAX_LENGTH,
         validators=[username_validator]
     )
-    email = serializers.EmailField(max_length=254)
+    email = serializers.EmailField(
+        max_length=settings.EMAIL_MAX_LENGTH
+    )
 
 
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_MAX_LENGTH,
         validators=[username_validator]
     )
-    confirmation_code = serializers.CharField(max_length=24)
+    confirmation_code = serializers.CharField(
+        max_length=settings.CONFIRMATION_CODE_MAX_LENGTH
+    )
