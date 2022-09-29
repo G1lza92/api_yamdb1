@@ -1,5 +1,6 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -127,23 +128,19 @@ class CommentViewSet(viewsets.ModelViewSet):
 def signup(request):
     serializer = RegistrationSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    username = request.data["username"]
-    email = request.data["email"]
-    if (User.objects.filter(
-        Q(username=username) & ~Q(email=email)
-        | ~Q(username=username) & Q(email=email)
-    ).exists()):
+    try:
+        user, _ = User.objects.get_or_create(**serializer.validated_data)
+    except IntegrityError:
         return Response(
             {'username': 'Пользователь с таким именем или почтой уже есть.'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    user, _ = User.objects.get_or_create(**serializer.validated_data)
     confirmation_code = default_token_generator.make_token(user)
     send_mail(
         'Токен',
         f'Ваш токен: {confirmation_code}',
         EMAIL_ADRESS,
-        [f'{email}']
+        [f'{serializer.validated_data["email"]}']
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
