@@ -92,7 +92,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['retrieve', 'list']:
             return self.detail_serializer_class
-        return super().get_serializer_class()
+        return TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
