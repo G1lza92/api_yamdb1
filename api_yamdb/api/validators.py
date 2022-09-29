@@ -2,7 +2,7 @@ import re
 
 from django.core.exceptions import ValidationError
 
-pattern = r"^[\w.@+-]+$"
+PATTERN = r"^[\w.@+-]+$"
 
 
 class UsernameValidator(object):
@@ -11,10 +11,10 @@ class UsernameValidator(object):
             raise ValidationError(
                 'Для имени пользователя нельзя использовать "me"'
             )
-        if not re.findall(pattern, value):
+        if not re.findall(PATTERN, value):
             raise ValidationError(
                 (f'Знаки '
-                 f'{", ".join(i for i in value if not re.match(pattern, i))}'
+                 f'{", ".join(i for i in value if not re.match(PATTERN, i))}'
                  f' запрещены для использоваения в имени')
             )
         return value
